@@ -7,7 +7,7 @@ fn test_parse_full_url_issue() {
     assert_eq!(target.owner, "rust-lang");
     assert_eq!(target.repo, "rust");
     assert_eq!(target.number, 123);
-    matches!(target.kind, TargetType::Issue);
+    assert!(matches!(target.kind, TargetType::Issue));
 }
 
 #[test]
@@ -17,7 +17,7 @@ fn test_parse_full_url_pr() {
     assert_eq!(target.owner, "rust-lang");
     assert_eq!(target.repo, "rust");
     assert_eq!(target.number, 456);
-    matches!(target.kind, TargetType::Pr);
+    assert!(matches!(target.kind, TargetType::Pr));
 }
 
 #[test]
@@ -34,7 +34,7 @@ fn test_parse_shorthand_forced_issue() {
     assert_eq!(target.owner, "rust-lang");
     assert_eq!(target.repo, "rust");
     assert_eq!(target.number, 789);
-    matches!(target.kind, TargetType::Issue);
+    assert!(matches!(target.kind, TargetType::Issue));
 }
 
 #[test]
@@ -44,7 +44,7 @@ fn test_parse_shorthand_forced_pr() {
     assert_eq!(target.owner, "rust-lang");
     assert_eq!(target.repo, "rust");
     assert_eq!(target.number, 789);
-    matches!(target.kind, TargetType::Pr);
+    assert!(matches!(target.kind, TargetType::Pr));
 }
 
 #[test]
