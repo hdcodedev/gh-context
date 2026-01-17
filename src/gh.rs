@@ -17,6 +17,10 @@ pub struct Target {
 }
 
 pub fn parse_target(input: &str, force_issue: bool, force_pr: bool) -> Result<Target> {
+    if force_issue && force_pr {
+        return Err(anyhow!("Cannot specify both --issue and --pr"));
+    }
+
     // case 1: Full URL
     if input.starts_with("https://github.com/") {
         let parts: Vec<&str> = input

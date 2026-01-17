@@ -11,6 +11,14 @@ fn test_parse_full_url_issue() {
 }
 
 #[test]
+fn test_conflicting_flags() {
+    let input = "rust-lang/rust#123";
+    let err = parse_target(input, true, true).unwrap_err();
+    assert!(err.to_string().contains("Cannot specify both --issue and --pr"));
+}
+
+
+#[test]
 fn test_parse_full_url_pr() {
     let input = "https://github.com/rust-lang/rust/pull/456";
     let target = parse_target(input, false, false).unwrap();
