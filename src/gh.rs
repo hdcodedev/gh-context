@@ -40,6 +40,8 @@ pub fn parse_target(input: &str, force_issue: bool, force_pr: bool) -> Result<Ta
         };
 
         let number = number_str
+            .split('#').next().unwrap()
+            .split('?').next().unwrap()
             .parse::<u64>()
             .context("Failed to parse issue/pr number from URL")?;
 

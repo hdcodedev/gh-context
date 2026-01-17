@@ -53,3 +53,17 @@ fn test_invalid_url() {
     let err = parse_target(input, false, false).unwrap_err();
     assert!(err.to_string().contains("URL must contain 'issues' or 'pull'"));
 }
+
+#[test]
+fn test_parse_full_url_with_fragment() {
+    let input = "https://github.com/rust-lang/rust/issues/123#issuecomment-456";
+    let target = parse_target(input, false, false).unwrap();
+    assert_eq!(target.number, 123);
+}
+
+#[test]
+fn test_parse_full_url_with_query() {
+    let input = "https://github.com/rust-lang/rust/pull/789?w=1";
+    let target = parse_target(input, false, false).unwrap();
+    assert_eq!(target.number, 789);
+}
