@@ -8,7 +8,7 @@ pub struct GhAuthor {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GhComment {
-    pub author: GhAuthor,
+    pub author: Option<GhAuthor>,
     pub body: String,
     #[serde(rename = "createdAt")]
     pub created_at: Option<String>,

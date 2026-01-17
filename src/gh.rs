@@ -121,7 +121,7 @@ pub fn fetch_context(target: &Target) -> Result<Context> {
         .comments
         .into_iter()
         .map(|c| UnifiedComment {
-            author: c.author.login,
+            author: c.author.map(|a| a.login).unwrap_or_else(|| "ghost".to_string()),
             body: c.body,
             created_at: c.created_at,
         })
