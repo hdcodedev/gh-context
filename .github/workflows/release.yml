@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build - ${{ matrix.platform.release_for }}
+    strategy:
+      matrix:
+        platform:
+          - release_for: Linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin: gh-context
+            name: gh-context-linux-amd64-gnu
+
+          - release_for: Linux-x86_64-musl
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            bin: gh-context
+            name: gh-context-linux-amd64-musl
+
+          - release_for: Windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: gh-context.exe
+            name: gh-context-windows-amd64.exe
+
+          - release_for: macOS-x86_64
+            os: macos-latest
+            target: x86_64-apple-darwin
+            bin: gh-context
+            name: gh-context-darwin-amd64
+
+          - release_for: macOS-aarch64
+            os: macos-latest
+            target: aarch64-apple-darwin
+            bin: gh-context
+            name: gh-context-darwin-arm64
+
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install musl-tools
+        if: matrix.platform.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Build binary
+        shell: bash
+        run: cargo build --locked --release --target ${{ matrix.platform.target }}
+
+      - name: Rename binary
+        shell: bash
+        run: mv target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }} target/${{ matrix.platform.target }}/release/${{ matrix.platform.name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.platform.target }}
+          path: target/${{ matrix.platform.target }}/release/${{ matrix.platform.name }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish Release
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          merge-multiple: true
+          path: dist
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          for file in *; do
+            sha256sum "$file" > "${file}.sha256"
+          done
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
