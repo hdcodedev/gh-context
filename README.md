@@ -42,7 +42,7 @@ cargo run -- <input> [OPTIONS]
 
 ### Examples
 
-Fetch context for a PR and output as JSON (default):
+Fetch context for a PR (creates `repo-issue-123/repo-issue-123.md` context by default, where `repo` is the repository name):
 ```bash
 gh-context owner/repo#123
 ```
@@ -52,9 +52,9 @@ Fetch context for an issue and copy to clipboard:
 gh-context https://github.com/owner/repo/issues/123 --clip
 ```
 
-Save as Markdown:
+Save as JSON (prints to stdout):
 ```bash
-gh-context owner/repo#123 --format md --out context.md
+gh-context owner/repo#123 --format json
 ```
 
 Using `cargo run`:
@@ -64,7 +64,7 @@ cargo run -- https://github.com/hdcodedev/resume256/issues/48
 
 ### Options
 
-- `--format <json|md>`: Output format (default: json)
+- `--format <json|md>`: Output format (default: md)
 - `--out <path>`: Write output to file
 - `--clip`: Copy output to clipboard (macOS only)
 - `--issue`: Treat input as issue (disambiguate shorthand)

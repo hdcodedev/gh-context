@@ -14,7 +14,7 @@ pub struct Cli {
     pub input: String,
 
     /// Output format
-    #[arg(long, value_enum, default_value_t = OutputFormat::Json)]
+    #[arg(long, value_enum, default_value_t = OutputFormat::Md)]
     pub format: OutputFormat,
 
     /// Output to file
