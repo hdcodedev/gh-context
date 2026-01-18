@@ -19,7 +19,13 @@ gh auth login
 
 ## Installation
 
-To install the tool globally (usually to `~/.cargo/bin`):
+To install from [crates.io](https://crates.io/crates/gh-context):
+
+```bash
+cargo install gh-context
+```
+
+To install from source (locally):
 
 ```bash
 cargo install --path .
