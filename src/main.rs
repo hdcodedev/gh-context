@@ -29,20 +29,28 @@ fn main() -> Result<()> {
             .with_context(|| format!("Failed to write output to file: {:?}", path))?;
     } else {
         match cli.format {
+            OutputFormat::Json => {
+                println!("{}", formatted_output);
+            }
             OutputFormat::Md => {
-                let repo_slug = context.metadata.repo.split('/').nth(1).unwrap_or(&context.metadata.repo);
-                let folder_name = format!("{}-issue-{}", repo_slug, context.metadata.number);
+                let repo_slug = context.metadata.repo
+                    .split('/')
+                    .nth(1)
+                    .unwrap_or(&context.metadata.repo);
+                let folder_name = format!(
+                    "{}-{}-{}",
+                    repo_slug, context.metadata.r#type, context.metadata.number
+                );
                 let folder_path = std::path::Path::new(&folder_name);
                 if !folder_path.exists() {
                     fs::create_dir(folder_path).context("Failed to create directory")?;
                 }
+
                 let file_path = folder_path.join(format!("{}.md", folder_name));
-                fs::write(&file_path, &formatted_output)
-                    .with_context(|| format!("Failed to write output to file: {:?}", file_path))?;
+                fs::write(&file_path, &formatted_output).with_context(|| {
+                    format!("Failed to write output to file: {:?}", file_path)
+                })?;
                 println!("Generated context in {}", file_path.display());
-            }
-             OutputFormat::Json => {
-                println!("{}", formatted_output);
             }
         }
     }
