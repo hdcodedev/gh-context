@@ -42,7 +42,7 @@ cargo run -- <input> [OPTIONS]
 
 ### Examples
 
-Fetch context for a PR (creates `issue-123/issue-123.md` context by default):
+Fetch context for a PR (creates `repo-issue-123/repo-issue-123.md` context by default, where `repo` is the repository name):
 ```bash
 gh-context owner/repo#123
 ```

@@ -30,7 +30,8 @@ fn main() -> Result<()> {
     } else {
         match cli.format {
             OutputFormat::Md => {
-                let folder_name = format!("issue-{}", context.metadata.number);
+                let repo_slug = context.metadata.repo.split('/').nth(1).unwrap_or(&context.metadata.repo);
+                let folder_name = format!("{}-issue-{}", repo_slug, context.metadata.number);
                 let folder_path = std::path::Path::new(&folder_name);
                 if !folder_path.exists() {
                     fs::create_dir(folder_path).context("Failed to create directory")?;
