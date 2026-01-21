@@ -1,4 +1,5 @@
 mod args;
+mod bulk;
 mod format;
 mod gh;
 mod types;
@@ -8,21 +9,62 @@ mod __tests__;
 
 use anyhow::{Context, Result};
 use args::{Cli, OutputFormat};
+use bulk::{resolve_bulk_out_dir, validate_bulk_args};
 use clap::Parser;
 use std::fs;
 use std::io::Write;
 use std::process::{Command, Stdio};
+use types::Context as GhContext;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    if cli.bulk {
+        validate_bulk_args(&cli)?;
+
+        let (owner, repo) = gh::parse_repo(&cli.input)?;
+        let repo_arg = format!("{}/{}", owner, repo);
+        let issue_numbers =
+            gh::list_issue_numbers(&repo_arg, cli.state.as_str(), cli.per_page, cli.pages)?;
+
+        if issue_numbers.is_empty() {
+            println!("No issues found.");
+            return Ok(());
+        }
+
+        let out_dir = resolve_bulk_out_dir(&cli, &repo)?;
+        let file_extension = output_extension(&cli.format);
+
+        for number in issue_numbers {
+            let target = gh::Target {
+                owner: owner.clone(),
+                repo: repo.clone(),
+                number,
+                kind: gh::TargetType::Issue,
+            };
+
+            let context = gh::fetch_context(&target)?;
+            let formatted_output = format_output(&context, &cli.format)?;
+
+            let base = format!(
+                "{}-{}-{}",
+                repo, context.metadata.r#type, context.metadata.number
+            );
+
+            let file_path = out_dir.join(format!("{}.{}", base, file_extension));
+            fs::write(&file_path, &formatted_output).with_context(|| {
+                format!("Failed to write output to file: {:?}", file_path)
+            })?;
+            println!("Generated context in {}", file_path.display());
+        }
+
+        return Ok(());
+    }
+
     let target = gh::parse_target(&cli.input, cli.issue, cli.pr)?;
     let context = gh::fetch_context(&target)?;
 
-    let formatted_output = match cli.format {
-        OutputFormat::Json => format::to_json(&context)?,
-        OutputFormat::Md => format::to_markdown(&context),
-    };
+    let formatted_output = format_output(&context, &cli.format)?;
 
     if let Some(path) = cli.out {
         fs::write(&path, &formatted_output)
@@ -74,4 +116,18 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn format_output(context: &GhContext, format: &OutputFormat) -> Result<String> {
+    match format {
+        OutputFormat::Json => format::to_json(context),
+        OutputFormat::Md => Ok(format::to_markdown(context)),
+    }
+}
+
+fn output_extension(format: &OutputFormat) -> &'static str {
+    match format {
+        OutputFormat::Json => "json",
+        OutputFormat::Md => "md",
+    }
 }
