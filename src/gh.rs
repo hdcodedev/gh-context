@@ -16,6 +16,11 @@ pub struct Target {
     pub kind: TargetType,
 }
 
+#[derive(Debug, serde::Deserialize)]
+struct IssueListItem {
+    pub number: u64,
+}
+
 pub fn parse_target(input: &str, force_issue: bool, force_pr: bool) -> Result<Target> {
     if force_issue && force_pr {
         return Err(anyhow!("Cannot specify both --issue and --pr"));
@@ -92,6 +97,43 @@ pub fn parse_target(input: &str, force_issue: bool, force_pr: bool) -> Result<Ta
     Err(anyhow!("Invalid input format. Must be a GitHub URL or owner/repo#number shorthand"))
 }
 
+pub fn parse_repo(input: &str) -> Result<(String, String)> {
+    if input.contains('#') {
+        return Err(anyhow!("Repo input must not include an issue/pr number"));
+    }
+
+    let base = if let Some(rest) = input.strip_prefix("https://github.com/") {
+        rest
+    } else {
+        input
+    };
+    let trimmed = base.split(|c| c == '?' || c == '#').next().unwrap_or("");
+
+    let path = trimmed.trim_matches('/');
+    let parts: Vec<&str> = path.split('/').collect();
+    if parts.len() < 2 {
+        return Err(anyhow!("Repo input must be in format owner/repo"));
+    }
+
+    let owner = parts[0].to_string();
+    let repo = parts[1].to_string();
+
+    if parts.len() >= 3 {
+        let segment = parts[2];
+        if segment == "issues" {
+            if parts.len() > 3 {
+                return Err(anyhow!("Bulk issues URL should not include an issue number"));
+            }
+        } else if segment == "pull" || segment == "pulls" {
+            return Err(anyhow!("Bulk mode supports issues only; use an /issues URL"));
+        } else {
+            return Err(anyhow!("Invalid repo URL format"));
+        }
+    }
+
+    Ok((owner, repo))
+}
+
 pub fn fetch_context(target: &Target) -> Result<Context> {
     let repo_arg = format!("{}/{}", target.owner, target.repo);
     let num_arg = target.number.to_string();
@@ -154,6 +196,47 @@ pub fn fetch_context(target: &Target) -> Result<Context> {
     Ok(context)
 }
 
+pub fn list_issue_numbers(
+    repo: &str,
+    state: &str,
+    per_page: u32,
+    pages: u32,
+) -> Result<Vec<u64>> {
+    let limit = (per_page as u64) * (pages as u64);
+    const MAX_ITEMS: u64 = 1000;
+    if limit > MAX_ITEMS {
+        return Err(anyhow!(
+            "Requested {} items (per_page * pages) exceeds maximum allowed of {}",
+            limit,
+            MAX_ITEMS
+        ));
+    }
+
+    let output = Command::new("gh")
+        .arg("issue")
+        .arg("list")
+        .arg("--repo")
+        .arg(repo)
+        .arg("--state")
+        .arg(state)
+        .arg("--limit")
+        .arg(limit.to_string())
+        .arg("--json")
+        .arg("number")
+        .output()
+        .context("Failed to execute 'gh issue list'")?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow!("'gh issue list' failed: {}", stderr));
+    }
+
+    let items: Vec<IssueListItem> = serde_json::from_slice(&output.stdout)
+        .context("Failed to parse JSON output from 'gh issue list'")?;
+
+    Ok(items.into_iter().map(|item| item.number).collect())
+}
+
 fn fetch_timeline(target: &Target) -> Result<Vec<serde_json::Value>> {
     let repo_arg = format!("{}/{}", target.owner, target.repo);
     let endpoint = format!("repos/{}/issues/{}/timeline", repo_arg, target.number);
@@ -181,4 +264,3 @@ fn fetch_timeline(target: &Target) -> Result<Vec<serde_json::Value>> {
 
     Ok(events)
 }
-
