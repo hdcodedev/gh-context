@@ -1,5 +1,7 @@
 use crate::args::{Cli, IssueState, OutputFormat};
-use crate::bulk::{resolve_bulk_out_dir, validate_bulk_args};
+use crate::bulk::{
+    resolve_bulk_out_dir, resolve_pr_range_out_dir, validate_bulk_args, validate_pr_range_args,
+};
 use std::fs;
 use std::path::PathBuf;
 
@@ -15,6 +17,8 @@ fn make_cli() -> Cli {
         state: IssueState::Open,
         per_page: 30,
         pages: 1,
+        from: None,
+        to: None,
     }
 }
 
@@ -92,4 +96,54 @@ fn test_resolve_bulk_out_dir_rejects_file() {
     assert!(err.to_string().contains("directory"));
 
     let _ = fs::remove_file(&tmp_file);
+}
+
+#[test]
+fn test_validate_pr_range_args_ok() {
+    let mut cli = make_cli();
+    cli.bulk = false;
+    cli.from = Some(10);
+    cli.to = Some(12);
+    assert_eq!(validate_pr_range_args(&cli).unwrap(), (10, 12));
+}
+
+#[test]
+fn test_validate_pr_range_args_requires_both_bounds() {
+    let mut cli = make_cli();
+    cli.bulk = false;
+    cli.from = Some(10);
+    let err = validate_pr_range_args(&cli).unwrap_err();
+    assert!(err.to_string().contains("provided together"));
+}
+
+#[test]
+fn test_validate_pr_range_args_rejects_descending_range() {
+    let mut cli = make_cli();
+    cli.bulk = false;
+    cli.from = Some(12);
+    cli.to = Some(10);
+    let err = validate_pr_range_args(&cli).unwrap_err();
+    assert!(err.to_string().contains("less than or equal"));
+}
+
+#[test]
+fn test_validate_pr_range_args_rejects_issue_flag() {
+    let mut cli = make_cli();
+    cli.bulk = false;
+    cli.issue = true;
+    cli.from = Some(1);
+    cli.to = Some(2);
+    let err = validate_pr_range_args(&cli).unwrap_err();
+    assert!(err.to_string().contains("PRs only"));
+}
+
+#[test]
+fn test_resolve_pr_range_out_dir_default() {
+    let mut cli = make_cli();
+    cli.bulk = false;
+    cli.out = None;
+    let dir = resolve_pr_range_out_dir(&cli, "repo").unwrap();
+    assert_eq!(dir, PathBuf::from("repo-prs"));
+    assert!(dir.is_dir());
+    let _ = fs::remove_dir_all(&dir);
 }

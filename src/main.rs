@@ -7,9 +7,11 @@ mod types;
 #[cfg(test)]
 mod __tests__;
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use args::{Cli, OutputFormat};
-use bulk::{resolve_bulk_out_dir, validate_bulk_args};
+use bulk::{
+    resolve_bulk_out_dir, resolve_pr_range_out_dir, validate_bulk_args, validate_pr_range_args,
+};
 use clap::Parser;
 use std::fs;
 use std::io::Write;
@@ -18,6 +20,65 @@ use types::Context as GhContext;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+
+    if cli.from.is_some() || cli.to.is_some() {
+        let (from, to) = validate_pr_range_args(&cli)?;
+        let (owner, repo) = gh::parse_repo(&cli.input)?;
+        let out_dir = resolve_pr_range_out_dir(&cli, &repo)?;
+        let file_extension = output_extension(&cli.format);
+        let mut failures: Vec<(u64, String)> = Vec::new();
+        let mut generated_count = 0_u64;
+
+        for number in from..=to {
+            let target = gh::Target {
+                owner: owner.clone(),
+                repo: repo.clone(),
+                number,
+                kind: gh::TargetType::Pr,
+            };
+
+            let context = match gh::fetch_context(&target) {
+                Ok(context) => context,
+                Err(err) => {
+                    failures.push((number, err.to_string()));
+                    continue;
+                }
+            };
+            let formatted_output = format_output(&context, &cli.format)?;
+            let base = format!(
+                "{}-{}-{}",
+                repo, context.metadata.r#type, context.metadata.number
+            );
+            let file_path = out_dir.join(format!("{}.{}", base, file_extension));
+            fs::write(&file_path, &formatted_output).with_context(|| {
+                format!("Failed to write output to file: {:?}", file_path)
+            })?;
+            println!("Generated context in {}", file_path.display());
+            generated_count += 1;
+        }
+
+        if !failures.is_empty() {
+            eprintln!(
+                "Completed with {} failed PR(s) in range {}..={}",
+                failures.len(),
+                from,
+                to
+            );
+            for (number, err) in &failures {
+                eprintln!(" - PR #{}: {}", number, err);
+            }
+        }
+
+        if generated_count == 0 {
+            return Err(anyhow!(
+                "No PR context files were generated for range {}..={}",
+                from,
+                to
+            ));
+        }
+
+        return Ok(());
+    }
 
     if cli.bulk {
         validate_bulk_args(&cli)?;
