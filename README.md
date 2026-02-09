@@ -58,6 +58,12 @@ Fetch context for a PR (creates `repo-issue-123/repo-issue-123.md` context by de
 gh-context owner/repo#123
 ```
 
+Fetch a PR range (inclusive, one file per PR in `repo-prs/` by default):
+```bash
+gh-context owner/repo --from 244 --to 276
+```
+If any PR in the range fails to fetch, the command continues and prints a failure summary.
+
 Bulk fetch open issues for a repo (one file per issue, first page by default):
 ```bash
 gh-context https://github.com/openai/codex/issues --bulk
@@ -94,3 +100,5 @@ cargo run -- https://github.com/hdcodedev/resume256/issues/48
 - `--state <open|closed|all>`: Issue state filter for bulk mode (default: open)
 - `--per-page <n>`: Items per page for bulk mode (default: 30)
 - `--pages <n>`: Number of pages to fetch in bulk mode (default: 1)
+- `--from <n>`: Start PR number for range mode (inclusive, requires `--to`)
+- `--to <n>`: End PR number for range mode (inclusive, requires `--from`)

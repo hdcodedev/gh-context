@@ -66,4 +66,12 @@ pub struct Cli {
     /// Number of pages to fetch in bulk mode
     #[arg(long, default_value_t = 1)]
     pub pages: u32,
+
+    /// Start PR number for range mode (inclusive)
+    #[arg(long)]
+    pub from: Option<u64>,
+
+    /// End PR number for range mode (inclusive)
+    #[arg(long)]
+    pub to: Option<u64>,
 }
