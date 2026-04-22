@@ -27,8 +27,9 @@ impl IssueState {
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
-    /// GitHub URL or shorthand (owner/repo#number), or repo (owner/repo) in bulk mode
-    pub input: String,
+    /// Optional GitHub URL or shorthand (owner/repo#number).
+    /// If omitted, the current repo is inferred from git remote.
+    pub input: Option<String>,
 
     /// Output format
     #[arg(long, value_enum, default_value_t = OutputFormat::Md)]
@@ -43,17 +44,9 @@ pub struct Cli {
     #[arg(long)]
     pub clip: bool,
 
-    /// Use smart agent mode for natural-language request input
-    #[arg(long)]
-    pub smart: bool,
-
-    /// Treat input as issue (disambiguate shorthand)
+    /// Treat input as issue (no longer needed, kept for backwards compatibility)
     #[arg(long)]
     pub issue: bool,
-
-    /// Treat input as PR (disambiguate shorthand)
-    #[arg(long)]
-    pub pr: bool,
 
     /// Fetch multiple issues for a repo (list mode)
     #[arg(long)]
@@ -70,12 +63,4 @@ pub struct Cli {
     /// Number of pages to fetch in bulk mode
     #[arg(long, default_value_t = 1)]
     pub pages: u32,
-
-    /// Start PR number for range mode (inclusive)
-    #[arg(long)]
-    pub from: Option<u64>,
-
-    /// End PR number for range mode (inclusive)
-    #[arg(long)]
-    pub to: Option<u64>,
 }

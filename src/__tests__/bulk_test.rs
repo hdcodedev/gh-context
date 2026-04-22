@@ -7,11 +7,10 @@ use std::path::PathBuf;
 
 fn make_cli() -> Cli {
     Cli {
-        input: "owner/repo".to_string(),
+        input: Some("owner/repo".to_string()),
         format: OutputFormat::Md,
         out: None,
         clip: false,
-        smart: false,
         issue: false,
         pr: false,
         bulk: true,
@@ -80,8 +79,7 @@ fn test_validate_bulk_args_requires_out() {
 #[test]
 fn test_resolve_bulk_out_dir_creates_dir() {
     let mut cli = make_cli();
-    let tmp_dir = std::env::temp_dir()
-        .join(format!("gh-context-{}", std::process::id()));
+    let tmp_dir = std::env::temp_dir().join(format!("gh-context-{}", std::process::id()));
     let _ = fs::remove_dir_all(&tmp_dir);
     cli.out = Some(tmp_dir.clone());
 
@@ -95,8 +93,7 @@ fn test_resolve_bulk_out_dir_creates_dir() {
 #[test]
 fn test_resolve_bulk_out_dir_rejects_file() {
     let mut cli = make_cli();
-    let tmp_file = std::env::temp_dir()
-        .join(format!("gh-context-{}.txt", std::process::id()));
+    let tmp_file = std::env::temp_dir().join(format!("gh-context-{}.txt", std::process::id()));
     let _ = fs::remove_file(&tmp_file);
     fs::write(&tmp_file, b"temp").unwrap();
     cli.out = Some(PathBuf::from(&tmp_file));
@@ -164,10 +161,7 @@ fn test_validate_pr_range_args_requires_out() {
 fn test_resolve_pr_range_out_dir_uses_explicit_out() {
     let mut cli = make_cli();
     cli.bulk = false;
-    let tmp_dir = std::env::temp_dir().join(format!(
-        "gh-context-pr-range-{}",
-        std::process::id()
-    ));
+    let tmp_dir = std::env::temp_dir().join(format!("gh-context-pr-range-{}", std::process::id()));
     let _ = fs::remove_dir_all(&tmp_dir);
     cli.out = Some(tmp_dir.clone());
 

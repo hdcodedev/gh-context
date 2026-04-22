@@ -2,13 +2,12 @@ use crate::types::{Context, GhResponse, Metadata, UnifiedComment};
 use anyhow::{anyhow, Context as _, Result};
 use std::process::Command;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum TargetType {
     Issue,
-    Pr,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Target {
     pub owner: String,
     pub repo: String,
@@ -32,17 +31,6 @@ struct RepoView {
     #[serde(rename = "isFork")]
     pub is_fork: bool,
     pub parent: Option<RepoViewParent>,
-}
-
-pub(crate) fn parse_repo_view_json(json: &str) -> Result<Option<String>> {
-    let repo_view: RepoView = serde_json::from_str(json)
-        .context("Failed to parse JSON output from 'gh repo view'")?;
-
-    if repo_view.is_fork {
-        Ok(repo_view.parent.map(|parent| parent.name_with_owner))
-    } else {
-        Ok(None)
-    }
 }
 
 pub fn resolve_effective_repo(repo: &str) -> Result<String> {
@@ -73,11 +61,7 @@ pub fn resolve_effective_repo(repo: &str) -> Result<String> {
     Ok(repo.to_string())
 }
 
-pub fn parse_target(input: &str, force_issue: bool, force_pr: bool) -> Result<Target> {
-    if force_issue && force_pr {
-        return Err(anyhow!("Cannot specify both --issue and --pr"));
-    }
-
+pub fn parse_target(input: &str, _force_issue: bool, _force_pr: bool) -> Result<Target> {
     // case 1: Full URL
     if input.starts_with("https://github.com/") {
         let parts: Vec<&str> = input
@@ -89,34 +73,27 @@ pub fn parse_target(input: &str, force_issue: bool, force_pr: bool) -> Result<Ta
         }
         let owner = parts[0].to_string();
         let repo = parts[1].to_string();
-        let kind_str = parts[2];
         let number_str = parts[3];
 
-        let kind = if kind_str == "issues" {
-            TargetType::Issue
-        } else if kind_str == "pull" {
-            TargetType::Pr
-        } else {
-            return Err(anyhow!("URL must contain 'issues' or 'pull'"));
-        };
-
         let number = number_str
-            .split('#').next().unwrap()
-            .split('?').next().unwrap()
+            .split('#')
+            .next()
+            .unwrap()
+            .split('?')
+            .next()
+            .unwrap()
             .parse::<u64>()
-            .context("Failed to parse issue/pr number from URL")?;
+            .context("Failed to parse issue number from URL")?;
 
         return Ok(Target {
             owner,
             repo,
             number,
-            kind,
+            kind: TargetType::Issue,
         });
     }
 
     // case 2: Shorthand owner/repo#number
-    // We also support owner/repo issue_number if that's common, but strictly owner/repo#number is requested.
-    // Actually, user said: <owner>/<repo>#<number>
     if let Some((repo_part, number_part)) = input.split_once('#') {
         let parts: Vec<&str> = repo_part.split('/').collect();
         if parts.len() != 2 {
@@ -127,26 +104,18 @@ pub fn parse_target(input: &str, force_issue: bool, force_pr: bool) -> Result<Ta
         let number = number_part
             .parse::<u64>()
             .context("Failed to parse number from shorthand")?;
-        
-        // Disambiguation
-        let kind = if force_pr {
-            TargetType::Pr
-        } else if force_issue {
-            TargetType::Issue
-        } else {
-             // If ambiguous, require --issue or --pr as per spec
-             return Err(anyhow!("Ambiguous shorthand. Please specify --issue or --pr"));
-        };
 
         return Ok(Target {
             owner,
             repo,
             number,
-            kind,
+            kind: TargetType::Issue,
         });
     }
 
-    Err(anyhow!("Invalid input format. Must be a GitHub URL or owner/repo#number shorthand"))
+    Err(anyhow!(
+        "Invalid input format. Must be a GitHub URL or owner/repo#number shorthand"
+    ))
 }
 
 pub fn parse_repo(input: &str) -> Result<(String, String)> {
@@ -174,10 +143,10 @@ pub fn parse_repo(input: &str) -> Result<(String, String)> {
         let segment = parts[2];
         if segment == "issues" {
             if parts.len() > 3 {
-                return Err(anyhow!("Bulk issues URL should not include an issue number"));
+                return Err(anyhow!(
+                    "Bulk issues URL should not include an issue number"
+                ));
             }
-        } else if segment == "pull" || segment == "pulls" {
-            return Err(anyhow!("Bulk mode supports issues only; use an /issues URL"));
         } else {
             return Err(anyhow!("Invalid repo URL format"));
         }
@@ -234,18 +203,13 @@ fn parse_owner_repo(path: &str) -> Result<String> {
     Ok(format!("{}/{}", parts[0], parts[1]))
 }
 
-pub fn fetch_context(target: &Target) -> Result<Context> {
+pub fn fetch_context(target: &Target, _force_issue: bool, _force_pr: bool) -> Result<Context> {
     let repo_arg = format!("{}/{}", target.owner, target.repo);
     let num_arg = target.number.to_string();
 
-    let (subcommand, kind_str) = match target.kind {
-        TargetType::Issue => ("issue", "issue"),
-        TargetType::Pr => ("pr", "pr"),
-    };
-
-    // gh <subcommand> view <number> --repo <owner>/<repo> --comments --json title,body,url,author,comments
+    // gh issue view <number> --repo <owner>/<repo> --comments --json title,body,url,author,comments,number
     let output = Command::new("gh")
-        .arg(subcommand)
+        .arg("issue")
         .arg("view")
         .arg(&num_arg)
         .arg("--repo")
@@ -261,21 +225,27 @@ pub fn fetch_context(target: &Target) -> Result<Context> {
         return Err(anyhow!("'gh' command failed: {}", stderr));
     }
 
-    let gh_data: GhResponse = serde_json::from_slice(&output.stdout)
-        .context("Failed to parse JSON output from 'gh'")?;
+    let gh_data: GhResponse =
+        serde_json::from_slice(&output.stdout).context("Failed to parse JSON output from 'gh'")?;
 
     // Convert to unified Context
     let comments: Vec<UnifiedComment> = gh_data
         .comments
         .into_iter()
         .map(|c| UnifiedComment {
-            author: c.author.map(|a| a.login).unwrap_or_else(|| "ghost".to_string()),
+            author: c
+                .author
+                .map(|a| a.login)
+                .unwrap_or_else(|| "ghost".to_string()),
             body: c.body,
             created_at: c.created_at,
         })
         .collect();
 
-    let author_login = gh_data.author.map(|a| a.login).unwrap_or_else(|| "unknown".to_string());
+    let author_login = gh_data
+        .author
+        .map(|a| a.login)
+        .unwrap_or_else(|| "unknown".to_string());
 
     let events = fetch_timeline(target).unwrap_or_else(|_| Vec::new());
 
@@ -283,7 +253,7 @@ pub fn fetch_context(target: &Target) -> Result<Context> {
         metadata: Metadata {
             repo: repo_arg,
             number: target.number,
-            r#type: kind_str.to_string(),
+            r#type: "issue".to_string(),
             url: gh_data.url,
             author: author_login,
         },
@@ -296,12 +266,7 @@ pub fn fetch_context(target: &Target) -> Result<Context> {
     Ok(context)
 }
 
-pub fn list_issue_numbers(
-    repo: &str,
-    state: &str,
-    per_page: u32,
-    pages: u32,
-) -> Result<Vec<u64>> {
+pub fn list_issue_numbers(repo: &str, state: &str, per_page: u32, pages: u32) -> Result<Vec<u64>> {
     let limit = (per_page as u64) * (pages as u64);
     const MAX_ITEMS: u64 = 1000;
     if limit > MAX_ITEMS {
@@ -352,12 +317,8 @@ fn fetch_timeline(target: &Target) -> Result<Vec<serde_json::Value>> {
         .context("Failed to execute 'gh api' for timeline")?;
 
     if !output.status.success() {
-        // Timeline might fail or be empty, strictly speaking we could return error
-        // but for now let's just log it or return empty?
-        // User asked for reliability. If it fails, maybe we should warn?
-        // Let's generic error.
-         let stderr = String::from_utf8_lossy(&output.stderr);
-         return Err(anyhow!("'gh api' failed: {}", stderr));
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow!("'gh api' failed: {}", stderr));
     }
 
     let events: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout)

@@ -11,7 +11,7 @@ This skill is not a general summary tool. It should only recommend issues that a
 
 ## When to use
 
-- Selecting the best issue or PR from a backlog.
+- Selecting the best issue from a backlog.
 - Turning issue context into a decision-ready recommendation.
 - Finding work that can be picked up without lengthy investigation.
 - Exporting issue context as markdown or JSON for downstream workflows.
@@ -19,19 +19,16 @@ This skill is not a general summary tool. It should only recommend issues that a
 ## Requirements
 
 - `gh` must be installed and authenticated.
-- `gh-context` should be available in `PATH`.
-- If it is not installed globally, run it from the repo with `cargo run -- <input> [OPTIONS]`.
+- Install the skill first with `npx skills add hdcodedev/gh-context`
+- For natural-language requests, the repo can be inferred from the current git `origin` remote when no explicit issue/PR target is given.
 
 ## Use the tool
 
-1. Choose whether the input is a single issue, a single PR, a PR range, or a bulk issue export.
-2. Run `gh-context <input>` when the binary is installed.
-3. Use `--issue` or `--pr` if shorthand input is ambiguous.
-4. Use `--format json` for programmatic consumption; otherwise use markdown.
-5. Use `--out <path>` to save output, or `--clip` on macOS to copy it.
-6. Use `--bulk` with `--state`, `--pages`, and `--per-page` for repository-wide exports.
-7. In triage mode, do more than restate the issue: explain the failure, the likely subsystem, and a likely fix direction.
-8. Do not recommend work that appears owned, blocked, or too uncertain.
+1. If the user provides a direct issue or PR reference, use that explicit target.
+2. If the user asks for an actionable issue without a GitHub reference, infer the repo from the current git `origin` remote and select the top open issue candidate.
+3. Use the slash command: `/gh-context <input>` (or just `/gh-context` to automatically pick the best issue)
+4. In triage mode, do more than restate the issue: explain the failure, the likely subsystem, and a likely fix direction.
+5. Do not recommend work that appears owned, blocked, or too uncertain.
 
 ## Triage criteria
 

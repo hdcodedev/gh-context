@@ -1,4 +1,4 @@
-use crate::gh::{parse_git_remote_url, parse_repo, parse_repo_view_json, parse_target, TargetType};
+use crate::gh::{parse_git_remote_url, parse_repo, parse_target, TargetType};
 
 #[test]
 fn test_parse_full_url_issue() {
@@ -14,9 +14,10 @@ fn test_parse_full_url_issue() {
 fn test_conflicting_flags() {
     let input = "rust-lang/rust#123";
     let err = parse_target(input, true, true).unwrap_err();
-    assert!(err.to_string().contains("Cannot specify both --issue and --pr"));
+    assert!(err
+        .to_string()
+        .contains("Cannot specify both --issue and --pr"));
 }
-
 
 #[test]
 fn test_parse_full_url_pr() {
@@ -59,7 +60,9 @@ fn test_parse_shorthand_forced_pr() {
 fn test_invalid_url() {
     let input = "https://github.com/rust-lang/rust/blob/main/README.md";
     let err = parse_target(input, false, false).unwrap_err();
-    assert!(err.to_string().contains("URL must contain 'issues' or 'pull'"));
+    assert!(err
+        .to_string()
+        .contains("URL must contain 'issues' or 'pull'"));
 }
 
 #[test]
@@ -133,24 +136,4 @@ fn test_parse_git_remote_url_simple() {
     let input = "rust-lang/rust";
     let repo = parse_git_remote_url(input).unwrap();
     assert_eq!(repo, "rust-lang/rust");
-}
-
-#[test]
-fn test_parse_repo_view_json_non_fork() {
-    let json = r#"{
-        "isFork": false,
-        "parent": null
-    }"#;
-    let parent = parse_repo_view_json(json).unwrap();
-    assert!(parent.is_none());
-}
-
-#[test]
-fn test_parse_repo_view_json_fork() {
-    let json = r#"{
-        "isFork": true,
-        "parent": { "nameWithOwner": "rust-lang/rust" }
-    }"#;
-    let parent = parse_repo_view_json(json).unwrap();
-    assert_eq!(parent.unwrap(), "rust-lang/rust");
 }

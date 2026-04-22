@@ -4,9 +4,6 @@ use std::fs;
 use std::path::PathBuf;
 
 pub fn validate_bulk_args(cli: &Cli) -> Result<()> {
-    if cli.pr {
-        return Err(anyhow!("--bulk supports issues only; remove --pr"));
-    }
     if cli.clip {
         return Err(anyhow!("--clip is not supported with --bulk"));
     }
@@ -17,48 +14,15 @@ pub fn validate_bulk_args(cli: &Cli) -> Result<()> {
         return Err(anyhow!("--pages must be at least 1"));
     }
     if cli.out.is_none() {
-        return Err(anyhow!("--out is required with --bulk to avoid writing in the current directory"));
+        return Err(anyhow!(
+            "--out is required with --bulk to avoid writing in the current directory"
+        ));
     }
     Ok(())
 }
 
 pub fn resolve_bulk_out_dir(cli: &Cli) -> Result<PathBuf> {
     resolve_out_dir(cli, "bulk mode")
-}
-
-pub fn validate_pr_range_args(cli: &Cli) -> Result<(u64, u64)> {
-    if cli.bulk {
-        return Err(anyhow!("--from/--to cannot be used with --bulk"));
-    }
-    if cli.issue {
-        return Err(anyhow!("--from/--to supports PRs only; remove --issue"));
-    }
-    if cli.clip {
-        return Err(anyhow!("--clip is not supported with --from/--to"));
-    }
-    if cli.out.is_none() {
-        return Err(anyhow!(
-            "--out is required with --from/--to to avoid writing in the current directory"
-        ));
-    }
-
-    let (from, to) = match (cli.from, cli.to) {
-        (Some(from), Some(to)) => (from, to),
-        (Some(_), None) | (None, Some(_)) => {
-            return Err(anyhow!("--from and --to must be provided together"));
-        }
-        (None, None) => return Err(anyhow!("--from and --to are required for PR range mode")),
-    };
-
-    if from > to {
-        return Err(anyhow!("--from must be less than or equal to --to"));
-    }
-
-    Ok((from, to))
-}
-
-pub fn resolve_pr_range_out_dir(cli: &Cli) -> Result<PathBuf> {
-    resolve_out_dir(cli, "PR range mode")
 }
 
 fn resolve_out_dir(cli: &Cli, mode_label: &str) -> Result<PathBuf> {

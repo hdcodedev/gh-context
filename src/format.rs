@@ -22,7 +22,7 @@ pub fn to_markdown(context: &Context) -> String {
     for (i, comment) in context.comments.iter().enumerate() {
         md.push_str(&format!("### Comment {} by {}\n", i + 1, comment.author));
         if let Some(created_at) = &comment.created_at {
-             md.push_str(&format!("_{}_\n", created_at));
+            md.push_str(&format!("_{}_\n", created_at));
         }
         md.push('\n');
         md.push_str(&comment.body);
@@ -33,15 +33,20 @@ pub fn to_markdown(context: &Context) -> String {
     md.push_str("## Timeline Events\n\n");
     for event in &context.events {
         if let Some(event_type) = event.get("event").and_then(|v| v.as_str()) {
-            let actor = event.get("actor")
+            let actor = event
+                .get("actor")
                 .and_then(|a| a.get("login"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("unknown");
-            let created_at = event.get("created_at")
+            let created_at = event
+                .get("created_at")
                 .and_then(|v| v.as_str())
                 .unwrap_or("-");
-            
-            md.push_str(&format!("- **{}** by **{}** at {}\n", event_type, actor, created_at));
+
+            md.push_str(&format!(
+                "- **{}** by **{}** at {}\n",
+                event_type, actor, created_at
+            ));
         }
     }
 
