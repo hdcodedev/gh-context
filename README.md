@@ -46,14 +46,20 @@ Example output:
 ```
 ### Recommended issue: #123 Fix crash on startup
 
-**Why pick this now**: High impact crash affecting 20% of users, clear repro steps provided.
+**Issue URL**: https://github.com/owner/repo/issues/123
 
-**Problem**: Application crashes immediately on launch when offline. Root cause is unhandled network error in initialization.
+**Why pick this now**:
+High impact crash affecting 20% of users, clear repro steps provided.
 
-**Fix direction**: Add error handling around the network call in `src/init.ts:42`, fall back to cached config.
+**Problem**:
+Application crashes immediately on launch when offline. Root cause is unhandled network error in initialization.
 
-`confidence_fix: 5` 🟩 Obvious
-`status: unowned`
+**Fix direction**:
+Add error handling around the network call in `src/init.ts:42`, fall back to cached config.
+
+**Confidence**: 🟩 Obvious
+**Status**: `unowned`
+**Blockers**: None
 ```
 
 ## Examples
