@@ -1,71 +1,106 @@
-name: Prepare Release
+name: Create Release PR
 
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'New semver version for Cargo.toml'
+      version_bump:
+        description: 'Version bump type'
         required: true
-      tag:
-        description: 'Optional Git tag name (defaults to v<version>)'
-        required: false
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  bump-version:
-    name: Bump version and create tag
+  create-pr:
+    name: Bump version and open release PR
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Bump Cargo.toml version
+        id: version
         shell: bash
         run: |
           set -euo pipefail
-          version="${{ github.event.inputs.version }}"
-          tag="${{ github.event.inputs.tag }}"
-          if [[ -z "$version" ]]; then
-            echo 'version input is required'
+          bump="${{ github.event.inputs.version_bump }}"
+          if [[ -z "$bump" ]]; then
+            echo 'version_bump input is required'
             exit 1
           fi
-          if [[ -z "$tag" ]]; then
-            tag="v$version"
-          fi
 
-          python - "$version" <<'PY'
+          version="$(python - "$bump" <<'PY'
           import re
           from pathlib import Path
           import sys
 
-          version = sys.argv[1]
+          bump = sys.argv[1]
           path = Path('Cargo.toml')
           text = path.read_text()
+
+          match = re.search(r'^(version\s*=\s*)"(\d+)\.(\d+)\.(\d+)"$', text, flags=re.M)
+          if not match:
+                raise SystemExit('Failed to parse semver version in Cargo.toml')
+
+          prefix, major, minor, patch = match.groups()
+          major = int(major)
+          minor = int(minor)
+          patch = int(patch)
+
+          if bump == 'patch':
+                patch += 1
+          elif bump == 'minor':
+                minor += 1
+                patch = 0
+          elif bump == 'major':
+                major += 1
+                minor = 0
+                patch = 0
+          else:
+                raise SystemExit(f'Unsupported version_bump value: {bump}')
+
+          version = f'{major}.{minor}.{patch}'
           new_text, count = re.subn(r'^(version\s*=\s*)"[^"]+"$', rf'\1"{version}"', text, count=1, flags=re.M)
           if count != 1:
               raise SystemExit('Failed to update version in Cargo.toml')
           path.write_text(new_text)
+          print(version)
           PY
-          git diff --quiet || true
+          )"
+          echo "NEW_VERSION=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Commit new version
+      - name: Create release branch and push
         shell: bash
         run: |
           set -euo pipefail
-          version="${{ github.event.inputs.version }}"
-          tag="${{ github.event.inputs.tag }}"
-          if [[ -z "$tag" ]]; then
-            tag="v$version"
-          fi
+          version="${{ steps.version.outputs.NEW_VERSION }}"
+          branch="release/v$version"
 
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$branch"
           git add Cargo.toml
           git commit -m "Bump version to $version"
-          git tag "$tag"
-          git push origin HEAD
-          git push origin "$tag"
+          git push origin "$branch"
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${{ steps.version.outputs.NEW_VERSION }}"
+          branch="release/v$version"
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "Release v$version" \
+            --body "Bumps Cargo.toml version to $version. Merging this PR triggers the publish workflow."
