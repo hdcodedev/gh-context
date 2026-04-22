@@ -1,0 +1,70 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'New semver version for Cargo.toml'
+        required: true
+      tag:
+        description: 'Optional Git tag name (defaults to v<version>)'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    name: Bump version and create tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump Cargo.toml version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ github.event.inputs.version }}"
+          tag="${{ github.event.inputs.tag }}"
+          if [[ -z "$version" ]]; then
+            echo 'version input is required'
+            exit 1
+          fi
+          if [[ -z "$tag" ]]; then
+            tag="v$version"
+          fi
+
+          python - <<'PY'
+import re
+from pathlib import Path
+import sys
+version = sys.argv[1]
+path = Path('Cargo.toml')
+text = path.read_text()
+new_text, count = re.subn(r'^(version\s*=\s*)"[^"]+"$', rf'\1"{version}"', text, count=1, flags=re.M)
+if count != 1:
+    raise SystemExit('Failed to update version in Cargo.toml')
+path.write_text(new_text)
+PY
+          git diff --quiet || true
+
+      - name: Commit new version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ github.event.inputs.version }}"
+          tag="${{ github.event.inputs.tag }}"
+          if [[ -z "$tag" ]]; then
+            tag="v$version"
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add Cargo.toml
+          git commit -m "Bump version to $version"
+          git tag "$tag"
+          git push origin HEAD
+          git push origin "$tag"
