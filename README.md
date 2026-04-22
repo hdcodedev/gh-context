@@ -52,7 +52,7 @@ Example output:
 
 **Fix direction**: Add error handling around the network call in `src/init.ts:42`, fall back to cached config.
 
-🟩 Obvious
+`confidence_fix: 5` 🟩 Obvious
 `status: unowned`
 ```
 
