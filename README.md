@@ -43,23 +43,25 @@ Automatically detects the repository from git origin and picks the top open issu
 
 Example output:
 
+### Example output
+
 ```
-### Recommended issue: #123 Fix crash on startup
+# Recommended issue: #123 Fix crash on startup
 
-**Issue URL**: https://github.com/owner/repo/issues/123
+Issue URL: https://github.com/owner/repo/issues/123
 
-**Why pick this now**:
+## Why pick this now
 High impact crash affecting 20% of users, clear repro steps provided.
 
-**Problem**:
+## Problem
 Application crashes immediately on launch when offline. Root cause is unhandled network error in initialization.
 
-**Fix direction**:
+## Fix direction
 Add error handling around the network call in `src/init.ts:42`, fall back to cached config.
 
-**Confidence**: 🟩 Obvious
-**Status**: `unowned`
-**Blockers**: None
+Confidence: 🟩 Obvious
+Status: unowned
+Blockers: None
 ```
 
 ## Examples
