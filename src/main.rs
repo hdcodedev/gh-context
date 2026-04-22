@@ -93,7 +93,7 @@ fn main() -> Result<()> {
             return Ok(());
         }
 
-        let out_dir = resolve_bulk_out_dir(&cli, &repo)?;
+        let out_dir = resolve_bulk_out_dir(&cli)?;
         let file_extension = output_extension(&cli.format);
 
         for number in issue_numbers {

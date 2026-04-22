@@ -84,7 +84,7 @@ fn test_resolve_bulk_out_dir_creates_dir() {
     let _ = fs::remove_dir_all(&tmp_dir);
     cli.out = Some(tmp_dir.clone());
 
-    let resolved = resolve_bulk_out_dir(&cli, "repo").unwrap();
+    let resolved = resolve_bulk_out_dir(&cli).unwrap();
     assert_eq!(resolved, tmp_dir);
     assert!(resolved.is_dir());
 
@@ -100,7 +100,7 @@ fn test_resolve_bulk_out_dir_rejects_file() {
     fs::write(&tmp_file, b"temp").unwrap();
     cli.out = Some(PathBuf::from(&tmp_file));
 
-    let err = resolve_bulk_out_dir(&cli, "repo").unwrap_err();
+    let err = resolve_bulk_out_dir(&cli).unwrap_err();
     assert!(err.to_string().contains("directory"));
 
     let _ = fs::remove_file(&tmp_file);

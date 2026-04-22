@@ -22,8 +22,7 @@ pub fn validate_bulk_args(cli: &Cli) -> Result<()> {
     Ok(())
 }
 
-pub fn resolve_bulk_out_dir(cli: &Cli, repo: &str) -> Result<PathBuf> {
-    let _ = repo;
+pub fn resolve_bulk_out_dir(cli: &Cli) -> Result<PathBuf> {
     resolve_out_dir(cli, "bulk mode")
 }
 
