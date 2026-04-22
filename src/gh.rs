@@ -1,5 +1,5 @@
 use crate::types::{Context, GhResponse, Metadata, UnifiedComment};
-use anyhow::{Context as _, Result, anyhow};
+use anyhow::{anyhow, Context as _, Result};
 use std::process::Command;
 
 #[derive(Debug, Clone, Copy)]
@@ -45,10 +45,9 @@ pub fn resolve_effective_repo(repo: &str) -> Result<String> {
     let output = Command::new("gh")
         .arg("repo")
         .arg("view")
-        .arg("--repo")
         .arg(repo)
         .arg("--json")
-        .arg("isFork,parent{nameWithOwner},hasIssuesEnabled")
+        .arg("isFork,parent,nameWithOwner,hasIssuesEnabled")
         .output()
         .context("Failed to execute 'gh repo view' for repository metadata")?;
 
@@ -66,7 +65,6 @@ pub fn resolve_effective_repo(repo: &str) -> Result<String> {
             let parent_check = Command::new("gh")
                 .arg("repo")
                 .arg("view")
-                .arg("--repo")
                 .arg(&parent.name_with_owner)
                 .arg("--json")
                 .arg("hasIssuesEnabled")
@@ -274,7 +272,7 @@ pub fn fetch_context(target: &Target, _force_issue: bool, _force_pr: bool) -> Re
     let repo_arg = format!("{}/{}", target.owner, target.repo);
     let num_arg = target.number.to_string();
 
-    // gh issue view <number> --repo <owner>/<repo> --comments --json title,body,url,author,comments,number
+    // gh issue view <number> --repo <owner>/<repo> --comments --json title,body,url,author,comments,number,assignees
     let output = Command::new("gh")
         .arg("issue")
         .arg("view")
@@ -283,7 +281,7 @@ pub fn fetch_context(target: &Target, _force_issue: bool, _force_pr: bool) -> Re
         .arg(&repo_arg)
         .arg("--comments")
         .arg("--json")
-        .arg("title,body,url,author,comments,number")
+        .arg("title,body,url,author,comments,number,assignees")
         .output()
         .context("Failed to execute 'gh' command. Is it installed?")?;
 
@@ -316,6 +314,23 @@ pub fn fetch_context(target: &Target, _force_issue: bool, _force_pr: bool) -> Re
 
     let events = fetch_timeline(target).unwrap_or_else(|_| Vec::new());
 
+    // Check for linked open PRs
+    let has_open_pr = events.iter().any(|event| {
+        event.get("event") == Some(&serde_json::Value::String("cross-referenced".to_string()))
+            && event
+                .get("source")
+                .and_then(|s| s.get("pull_request"))
+                .and_then(|pr| pr.get("state"))
+                == Some(&serde_json::Value::String("open".to_string()))
+    });
+
+    // Check if issue is assigned
+    let is_assigned = gh_data
+        .assignees
+        .as_array()
+        .map(|a| !a.is_empty())
+        .unwrap_or(false);
+
     let context = Context {
         metadata: Metadata {
             repo: repo_arg,
@@ -328,6 +343,9 @@ pub fn fetch_context(target: &Target, _force_issue: bool, _force_pr: bool) -> Re
         body: gh_data.body,
         comments,
         events,
+        has_open_pr,
+        is_assigned,
+        confidence_score: 0,
     };
 
     Ok(context)

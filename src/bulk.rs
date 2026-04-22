@@ -1,5 +1,5 @@
 use crate::args::Cli;
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use std::fs;
 use std::path::PathBuf;
 

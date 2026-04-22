@@ -7,7 +7,7 @@ mod types;
 #[cfg(test)]
 mod __tests__;
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use args::{Cli, OutputFormat};
 use bulk::{resolve_bulk_out_dir, validate_bulk_args};
 use clap::Parser;
@@ -134,14 +134,32 @@ fn handle_default_mode(cli: &Cli) -> Result<()> {
     }
 
     let parts: Vec<&str> = repo_arg.split('/').collect();
-    let target = gh::Target {
-        owner: parts[0].to_string(),
-        repo: parts[1].to_string(),
-        number: issue_numbers[0],
-        kind: gh::TargetType::Issue,
-    };
 
-    let context = gh::fetch_context(&target, true, false)?;
+    // Find first valid unowned issue without open PRs
+    let mut selected_context: Option<GhContext> = None;
+
+    for number in issue_numbers {
+        let target = gh::Target {
+            owner: parts[0].to_string(),
+            repo: parts[1].to_string(),
+            number,
+            kind: gh::TargetType::Issue,
+        };
+
+        let context = match gh::fetch_context(&target, true, false) {
+            Ok(ctx) => ctx,
+            Err(_) => continue,
+        };
+
+        // Apply triage filters
+        if !context.has_open_pr && !context.is_assigned {
+            selected_context = Some(context);
+            break;
+        }
+    }
+
+    let context = selected_context
+        .ok_or_else(|| anyhow!("No valid unowned issues found without open PRs"))?;
     let formatted_output = format_output(&context, &cli.format)?;
 
     if let Some(path) = &cli.out {

@@ -24,6 +24,8 @@ pub struct GhResponse {
     pub comments: Vec<GhComment>,
     #[serde(default)]
     pub author: Option<GhAuthor>,
+    #[serde(default)]
+    pub assignees: serde_json::Value,
 }
 
 #[derive(Debug, Serialize)]
@@ -50,4 +52,16 @@ pub struct Context {
     pub body: String,
     pub comments: Vec<UnifiedComment>,
     pub events: Vec<serde_json::Value>,
+    pub has_open_pr: bool,
+    pub is_assigned: bool,
+    pub confidence_score: u8,
+}
+
+#[derive(Debug, Clone)]
+pub struct IssueCandidate {
+    pub number: u64,
+    pub has_open_pr: bool,
+    pub is_assigned: bool,
+    pub is_valid: bool,
+    pub score: u8,
 }

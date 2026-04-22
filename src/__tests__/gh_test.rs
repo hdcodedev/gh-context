@@ -1,4 +1,4 @@
-use crate::gh::{TargetType, parse_git_remote_url, parse_repo, parse_target};
+use crate::gh::{parse_git_remote_url, parse_repo, parse_target, TargetType};
 
 #[test]
 fn test_parse_full_url_issue() {
@@ -24,10 +24,9 @@ fn test_parse_shorthand_issue() {
 fn test_invalid_url() {
     let input = "https://github.com/rust-lang/rust/blob/main/README.md";
     let err = parse_target(input, true, false).unwrap_err();
-    assert!(
-        err.to_string()
-            .contains("Failed to parse issue number from URL")
-    );
+    assert!(err
+        .to_string()
+        .contains("Failed to parse issue number from URL"));
 }
 
 #[test]
