@@ -37,17 +37,18 @@ jobs:
             tag="v$version"
           fi
 
-          python - <<'PY'
-            import re
-            from pathlib import Path
-            import sys
-            version = sys.argv[1]
-            path = Path('Cargo.toml')
-            text = path.read_text()
-            new_text, count = re.subn(r'^(version\s*=\s*)"[^"]+"$', rf'\1"{version}"', text, count=1, flags=re.M)
-            if count != 1:
-                raise SystemExit('Failed to update version in Cargo.toml')
-            path.write_text(new_text)
+          python - "$version" <<'PY'
+          import re
+          from pathlib import Path
+          import sys
+
+          version = sys.argv[1]
+          path = Path('Cargo.toml')
+          text = path.read_text()
+          new_text, count = re.subn(r'^(version\s*=\s*)"[^"]+"$', rf'\1"{version}"', text, count=1, flags=re.M)
+          if count != 1:
+              raise SystemExit('Failed to update version in Cargo.toml')
+          path.write_text(new_text)
           PY
           git diff --quiet || true
 
