@@ -7,11 +7,9 @@ mod types;
 #[cfg(test)]
 mod __tests__;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use args::{Cli, OutputFormat};
-use bulk::{
-    resolve_bulk_out_dir, validate_bulk_args,
-};
+use bulk::{resolve_bulk_out_dir, validate_bulk_args};
 use clap::Parser;
 use std::fs;
 use std::io::Write;

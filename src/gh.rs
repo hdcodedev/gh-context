@@ -1,5 +1,5 @@
 use crate::types::{Context, GhResponse, Metadata, UnifiedComment};
-use anyhow::{anyhow, Context as _, Result};
+use anyhow::{Context as _, Result, anyhow};
 use std::process::Command;
 
 #[derive(Debug, Clone, Copy)]
@@ -188,20 +188,54 @@ pub fn parse_repo(input: &str) -> Result<(String, String)> {
     Ok((owner, repo))
 }
 
-pub fn detect_repo_from_git() -> Result<String> {
+fn try_git_remote_url(remote_name: &str) -> Option<String> {
     let output = Command::new("git")
         .arg("remote")
         .arg("get-url")
-        .arg("origin")
+        .arg(remote_name)
         .output()
-        .context("Failed to execute 'git remote get-url origin' for current repo detection")?;
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+fn get_git_remote_url(remote_name: &str) -> Result<String> {
+    let output = Command::new("git")
+        .arg("remote")
+        .arg("get-url")
+        .arg(remote_name)
+        .output()
+        .with_context(|| {
+            format!(
+                "Failed to execute 'git remote get-url {}' for current repo detection",
+                remote_name
+            )
+        })?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow!("'git remote get-url' failed: {}", stderr));
+        return Err(anyhow!(
+            "'git remote get-url {}' failed: {}",
+            remote_name,
+            stderr
+        ));
     }
 
-    let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+pub fn detect_repo_from_git() -> Result<String> {
+    if let Some(url) = try_git_remote_url("upstream") {
+        if let Ok(repo) = parse_git_remote_url(&url) {
+            return Ok(repo);
+        }
+    }
+
+    let url = get_git_remote_url("origin")?;
     parse_git_remote_url(&url)
 }
 
