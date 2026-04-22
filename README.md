@@ -33,6 +33,24 @@ To install from source (locally):
 cargo install --path .
 ```
 
+## Agent Skill
+
+This repository now includes an installable agent skill for `skills.sh` in `.agents/skills/gh-context/`.
+
+Install it from GitHub with:
+
+```bash
+npx skills add <owner>/gh-context
+```
+
+List available skills in the repo:
+
+```bash
+npx skills add <owner>/gh-context --list
+```
+
+The repository will show up on the `skills.sh` leaderboard once users install it through the `skills` CLI.
+
 ## Usage
 
 ### Running Installed Command
