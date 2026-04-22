@@ -69,16 +69,33 @@ Only issues rated `4` or `5` should be recommended. Lower-confidence candidates 
 
 ## Recommended output format
 
-Return a single best recommendation with:
+Return exactly this template structure for every recommendation:
 
-- **Full issue URL** (always include direct clickable link)
-- Issue reference and title
-- Why it is worth picking now
-- Problem analysis
-- Potential solution direction
-- Confidence rating using exact format from ## Confidence rating section (only emoji + label, example: `🟩 Confident`)
-- Ownership status: `unowned`, `possibly owned`, or `owned`
-- Blockers or missing information
+```markdown
+### Recommended issue: #{number} {title}
+
+**Issue URL**: {full_url}
+
+**Why pick this now**:
+{single paragraph explaining priority, impact, and urgency}
+
+**Problem**:
+{clear analysis of the root issue in 1-2 sentences}
+
+**Fix direction**:
+{concrete actionable path with exact file or module location when available}
+
+**Confidence**: {emoji} {label}
+**Status**: `{ownership}`
+**Blockers**: {what is missing or unclear}
+```
+
+Use only the exact confidence formats defined above:
+- 🟥 No clue
+- 🟧 Uncertain
+- 🟨 Possible
+- 🟩 Confident
+- 🟩 Obvious
 
 If no suitable issue can be recommended, respond with a brief explanation that no high-confidence actionable issue was found.
 
