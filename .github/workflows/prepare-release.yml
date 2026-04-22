@@ -81,6 +81,12 @@ jobs:
           )"
           echo "NEW_VERSION=$version" >> "$GITHUB_OUTPUT"
 
+      - name: Regenerate Cargo.lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo generate-lockfile
+
       - name: Create release branch and push
         shell: bash
         run: |
@@ -89,7 +95,7 @@ jobs:
           branch="release/v$version"
 
           git checkout -b "$branch"
-          git add Cargo.toml
+          git add Cargo.toml Cargo.lock
           git commit -m "Bump version to $version"
           git push origin "$branch"
 
