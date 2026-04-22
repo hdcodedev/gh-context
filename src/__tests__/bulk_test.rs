@@ -24,7 +24,8 @@ fn make_cli() -> Cli {
 
 #[test]
 fn test_validate_bulk_args_ok() {
-    let cli = make_cli();
+    let mut cli = make_cli();
+    cli.out = Some(PathBuf::from("tmp-out"));
     assert!(validate_bulk_args(&cli).is_ok());
 }
 
@@ -69,6 +70,13 @@ fn test_validate_bulk_args_rejects_zero_pages() {
 }
 
 #[test]
+fn test_validate_bulk_args_requires_out() {
+    let cli = make_cli();
+    let err = validate_bulk_args(&cli).unwrap_err();
+    assert!(err.to_string().contains("--out is required"));
+}
+
+#[test]
 fn test_resolve_bulk_out_dir_creates_dir() {
     let mut cli = make_cli();
     let tmp_dir = std::env::temp_dir()
@@ -76,7 +84,7 @@ fn test_resolve_bulk_out_dir_creates_dir() {
     let _ = fs::remove_dir_all(&tmp_dir);
     cli.out = Some(tmp_dir.clone());
 
-    let resolved = resolve_bulk_out_dir(&cli, "repo").unwrap();
+    let resolved = resolve_bulk_out_dir(&cli).unwrap();
     assert_eq!(resolved, tmp_dir);
     assert!(resolved.is_dir());
 
@@ -92,7 +100,7 @@ fn test_resolve_bulk_out_dir_rejects_file() {
     fs::write(&tmp_file, b"temp").unwrap();
     cli.out = Some(PathBuf::from(&tmp_file));
 
-    let err = resolve_bulk_out_dir(&cli, "repo").unwrap_err();
+    let err = resolve_bulk_out_dir(&cli).unwrap_err();
     assert!(err.to_string().contains("directory"));
 
     let _ = fs::remove_file(&tmp_file);
@@ -104,6 +112,7 @@ fn test_validate_pr_range_args_ok() {
     cli.bulk = false;
     cli.from = Some(10);
     cli.to = Some(12);
+    cli.out = Some(PathBuf::from("tmp-out"));
     assert_eq!(validate_pr_range_args(&cli).unwrap(), (10, 12));
 }
 
@@ -112,6 +121,7 @@ fn test_validate_pr_range_args_requires_both_bounds() {
     let mut cli = make_cli();
     cli.bulk = false;
     cli.from = Some(10);
+    cli.out = Some(PathBuf::from("tmp-out"));
     let err = validate_pr_range_args(&cli).unwrap_err();
     assert!(err.to_string().contains("provided together"));
 }
@@ -122,6 +132,7 @@ fn test_validate_pr_range_args_rejects_descending_range() {
     cli.bulk = false;
     cli.from = Some(12);
     cli.to = Some(10);
+    cli.out = Some(PathBuf::from("tmp-out"));
     let err = validate_pr_range_args(&cli).unwrap_err();
     assert!(err.to_string().contains("less than or equal"));
 }
@@ -133,17 +144,35 @@ fn test_validate_pr_range_args_rejects_issue_flag() {
     cli.issue = true;
     cli.from = Some(1);
     cli.to = Some(2);
+    cli.out = Some(PathBuf::from("tmp-out"));
     let err = validate_pr_range_args(&cli).unwrap_err();
     assert!(err.to_string().contains("PRs only"));
 }
 
 #[test]
-fn test_resolve_pr_range_out_dir_default() {
+fn test_validate_pr_range_args_requires_out() {
     let mut cli = make_cli();
     cli.bulk = false;
-    cli.out = None;
-    let dir = resolve_pr_range_out_dir(&cli, "repo").unwrap();
-    assert_eq!(dir, PathBuf::from("repo-prs"));
+    cli.from = Some(1);
+    cli.to = Some(2);
+    let err = validate_pr_range_args(&cli).unwrap_err();
+    assert!(err.to_string().contains("--out is required"));
+}
+
+#[test]
+fn test_resolve_pr_range_out_dir_uses_explicit_out() {
+    let mut cli = make_cli();
+    cli.bulk = false;
+    let tmp_dir = std::env::temp_dir().join(format!(
+        "gh-context-pr-range-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&tmp_dir);
+    cli.out = Some(tmp_dir.clone());
+
+    let dir = resolve_pr_range_out_dir(&cli).unwrap();
+    assert_eq!(dir, tmp_dir);
     assert!(dir.is_dir());
+
     let _ = fs::remove_dir_all(&dir);
 }
