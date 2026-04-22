@@ -59,7 +59,7 @@ Each recommended issue must include `confidence_fix: 1-5` plus natural label:
 
 - `1`: 🟥 **No clue** — The issue is unclear and likely needs major investigation.
 - `2`: 🟧 **Uncertain** — Some direction exists but the fix is still uncertain.
-- `3`: 🟨 **Plausible** — A reasonable path exists but notable unknowns remain.
+- `3`: 🟨 **Possible** — A reasonable path exists but notable unknowns remain.
 - `4`: 🟩 **Confident** — The issue is scoped and a credible fix path is visible.
 - `5`: 🟩 **Obvious** — Repro, subsystem, and implementation direction are crystal clear.
 
