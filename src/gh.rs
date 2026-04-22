@@ -31,6 +31,14 @@ struct RepoView {
     #[serde(rename = "isFork")]
     pub is_fork: bool,
     pub parent: Option<RepoViewParent>,
+    #[serde(rename = "hasIssuesEnabled")]
+    pub has_issues_enabled: bool,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct ParentRepoView {
+    #[serde(rename = "hasIssuesEnabled")]
+    pub has_issues_enabled: bool,
 }
 
 pub fn resolve_effective_repo(repo: &str) -> Result<String> {
@@ -40,7 +48,7 @@ pub fn resolve_effective_repo(repo: &str) -> Result<String> {
         .arg("--repo")
         .arg(repo)
         .arg("--json")
-        .arg("isFork,parent{nameWithOwner}")
+        .arg("isFork,parent{nameWithOwner},hasIssuesEnabled")
         .output()
         .context("Failed to execute 'gh repo view' for repository metadata")?;
 
@@ -54,8 +62,33 @@ pub fn resolve_effective_repo(repo: &str) -> Result<String> {
 
     if repo_view.is_fork {
         if let Some(parent) = repo_view.parent {
-            return Ok(parent.name_with_owner);
+            // Check if parent repository actually has issues enabled before switching
+            let parent_check = Command::new("gh")
+                .arg("repo")
+                .arg("view")
+                .arg("--repo")
+                .arg(&parent.name_with_owner)
+                .arg("--json")
+                .arg("hasIssuesEnabled")
+                .output();
+
+            if let Ok(parent_output) = parent_check {
+                if parent_output.status.success() {
+                    if let Ok(parent_repo) =
+                        serde_json::from_slice::<ParentRepoView>(&parent_output.stdout)
+                    {
+                        if parent_repo.has_issues_enabled {
+                            return Ok(parent.name_with_owner);
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    // Verify even our current repo has issues enabled
+    if !repo_view.has_issues_enabled {
+        return Err(anyhow!("Current repository has issues disabled"));
     }
 
     Ok(repo.to_string())

@@ -69,11 +69,12 @@ Only issues rated `4` or `5` should appear in the recommended shortlist. Lower-c
 
 When triaging multiple issues, return a ranked shortlist with:
 
+- **Full issue URL** (always include direct clickable link)
 - Issue reference and title
 - Why it is worth picking now
 - Problem analysis
 - Potential solution direction
-- `confidence_fix: <4|5> <label>` (e.g. `confidence_fix: 4 Confident` or `confidence_fix: 5 Obvious`)
+- Confidence rating using exact format from ## Confidence rating section (only emoji + label, example: `🟩 Confident`)
 - Ownership status: `unowned`, `possibly owned`, or `owned`
 - Blockers or missing information
 
