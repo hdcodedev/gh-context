@@ -170,7 +170,7 @@ fn test_resolve_pr_range_out_dir_uses_explicit_out() {
     let _ = fs::remove_dir_all(&tmp_dir);
     cli.out = Some(tmp_dir.clone());
 
-    let dir = resolve_pr_range_out_dir(&cli, "repo").unwrap();
+    let dir = resolve_pr_range_out_dir(&cli).unwrap();
     assert_eq!(dir, tmp_dir);
     assert!(dir.is_dir());
 

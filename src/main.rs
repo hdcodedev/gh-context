@@ -24,7 +24,7 @@ fn main() -> Result<()> {
     if cli.from.is_some() || cli.to.is_some() {
         let (from, to) = validate_pr_range_args(&cli)?;
         let (owner, repo) = gh::parse_repo(&cli.input)?;
-        let out_dir = resolve_pr_range_out_dir(&cli, &repo)?;
+        let out_dir = resolve_pr_range_out_dir(&cli)?;
         let file_extension = output_extension(&cli.format);
         let mut failures: Vec<(u64, String)> = Vec::new();
         let mut generated_count = 0_u64;

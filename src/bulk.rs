@@ -57,8 +57,7 @@ pub fn validate_pr_range_args(cli: &Cli) -> Result<(u64, u64)> {
     Ok((from, to))
 }
 
-pub fn resolve_pr_range_out_dir(cli: &Cli, repo: &str) -> Result<PathBuf> {
-    let _ = repo;
+pub fn resolve_pr_range_out_dir(cli: &Cli) -> Result<PathBuf> {
     resolve_out_dir(cli, "PR range mode")
 }
 
