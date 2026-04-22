@@ -25,38 +25,37 @@ impl IssueState {
 }
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about = "Extract and triage actionable context from GitHub issues", long_about = None)]
 pub struct Cli {
-    /// Optional GitHub URL or shorthand (owner/repo#number).
-    /// If omitted, the current repo is inferred from git remote.
+    /// GitHub issue URL or shorthand (owner/repo#number).
+    /// If omitted, automatically find the best actionable issue in the current repository.
     pub input: Option<String>,
 
-    /// Output format
+    /// Output format: Markdown for humans, JSON for scripts
     #[arg(long, value_enum, default_value_t = OutputFormat::Md)]
     pub format: OutputFormat,
 
-    /// Output to file
+    /// Write output to this file instead of printing
     #[arg(long)]
     pub out: Option<PathBuf>,
 
-    /// Copy to clipboard (macos only for now via pbcopy if needed, or just print)
-    /// Note: User requested --clip flag.
+    /// Copy output directly to clipboard (macOS only)
     #[arg(long)]
     pub clip: bool,
 
-    /// Treat input as issue (no longer needed, kept for backwards compatibility)
-    #[arg(long)]
+    /// Treat input as issue (legacy flag, no effect)
+    #[arg(long, hide = true)]
     pub issue: bool,
 
-    /// Fetch multiple issues for a repo (list mode)
+    /// Fetch all matching issues and save each to separate files
     #[arg(long)]
     pub bulk: bool,
 
-    /// Issue state filter for bulk mode
+    /// Filter issues by state in bulk mode
     #[arg(long, value_enum, default_value_t = IssueState::Open)]
     pub state: IssueState,
 
-    /// Items per page for bulk mode (1-100)
+    /// Number of issues to fetch per page (1-100)
     #[arg(long, default_value_t = 30)]
     pub per_page: u32,
 

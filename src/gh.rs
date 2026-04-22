@@ -53,7 +53,10 @@ pub fn resolve_effective_repo(repo: &str) -> Result<String> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(anyhow!("'gh repo view' failed: {}", stderr));
+        return Err(anyhow!(
+            "Could not read repository details. Make sure you're authenticated with GitHub CLI: {}",
+            stderr.trim()
+        ));
     }
 
     let repo_view: RepoView = serde_json::from_slice(&output.stdout)
@@ -86,7 +89,7 @@ pub fn resolve_effective_repo(repo: &str) -> Result<String> {
 
     // Verify even our current repo has issues enabled
     if !repo_view.has_issues_enabled {
-        return Err(anyhow!("Current repository has issues disabled"));
+        return Err(anyhow!("This repository has Issues disabled. Enable Issues in repository settings to use this tool."));
     }
 
     Ok(repo.to_string())
@@ -100,7 +103,7 @@ pub fn parse_target(input: &str, _force_issue: bool, _force_pr: bool) -> Result<
             .split('/')
             .collect();
         if parts.len() < 4 {
-            return Err(anyhow!("Invalid GitHub URL format"));
+            return Err(anyhow!("This GitHub URL is not recognised. Use a full issue URL like: https://github.com/owner/repo/issues/123"));
         }
         let owner = parts[0].to_string();
         let repo = parts[1].to_string();
@@ -128,7 +131,9 @@ pub fn parse_target(input: &str, _force_issue: bool, _force_pr: bool) -> Result<
     if let Some((repo_part, number_part)) = input.split_once('#') {
         let parts: Vec<&str> = repo_part.split('/').collect();
         if parts.len() != 2 {
-            return Err(anyhow!("Shorthand must be in format owner/repo#number"));
+            return Err(anyhow!(
+                "Use the format owner/repo#123 for issue references."
+            ));
         }
         let owner = parts[0].to_string();
         let repo = parts[1].to_string();
@@ -145,7 +150,7 @@ pub fn parse_target(input: &str, _force_issue: bool, _force_pr: bool) -> Result<
     }
 
     Err(anyhow!(
-        "Invalid input format. Must be a GitHub URL or owner/repo#number shorthand"
+        "Could not understand input. Provide either:\n• A full GitHub issue URL\n• Shorthand like owner/repo#123\nOr run without arguments to use the current repository."
     ))
 }
 

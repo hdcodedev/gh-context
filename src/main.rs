@@ -129,7 +129,7 @@ fn handle_default_mode(cli: &Cli) -> Result<()> {
         gh::list_issue_numbers(&repo_arg, cli.state.as_str(), cli.per_page, cli.pages)?;
 
     if issue_numbers.is_empty() {
-        println!("No issues found.");
+        println!("No open issues found matching your filters.");
         return Ok(());
     }
 
@@ -159,7 +159,7 @@ fn handle_default_mode(cli: &Cli) -> Result<()> {
     }
 
     let context = selected_context
-        .ok_or_else(|| anyhow!("No valid unowned issues found without open PRs"))?;
+        .ok_or_else(|| anyhow!("No suitable issues found. All open issues are either assigned or have open pull requests."))?;
     let formatted_output = format_output(&context, &cli.format)?;
 
     if let Some(path) = &cli.out {

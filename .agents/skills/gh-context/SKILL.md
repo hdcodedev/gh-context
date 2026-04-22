@@ -5,9 +5,9 @@ description: Analyze GitHub issues, pick the best actionable work, and return on
 
 # gh-context
 
-Use this skill to triage GitHub issue context and produce a short ranked list of the best work to pick next.
+Use this skill to triage GitHub issue context and return the single best actionable issue recommendation.
 
-This skill is not a general summary tool. It should only recommend issues that are actionable, unowned, and supported by a clear fix direction.
+This skill is not a general summary tool. It should only recommend one issue that is actionable, unowned, and supported by a clear fix direction.
 
 ## When to use
 
@@ -27,8 +27,10 @@ This skill is not a general summary tool. It should only recommend issues that a
 1. If the user provides a direct issue reference, use that explicit target.
 2. If the user asks for an actionable issue without a GitHub reference, infer the repo from the current git `origin` remote and select the top open issue candidate.
 3. Use the slash command: `/gh-context <input>` (or just `/gh-context` to automatically pick the best issue)
-4. Always do more than restate the issue: explain the failure, the likely subsystem, and a likely fix direction.
-5. Do not recommend work that appears owned, blocked, or too uncertain.
+4. Return at most one recommendation; if multiple candidates are found, return the best one only.
+5. If no issue meets the quality thresholds, say so clearly and explain why no recommendation is available.
+6. Always do more than restate the issue: explain the failure, the likely subsystem, and a likely fix direction.
+7. Do not recommend work that appears owned, blocked, or too uncertain.
 
 ## Triage criteria
 
@@ -63,11 +65,11 @@ Each recommended issue must include `confidence_fix: 1-5` plus natural label:
 - `4`: 🟩 **Confident** — The issue is scoped and a credible fix path is visible.
 - `5`: 🟩 **Obvious** — Repro, subsystem, and implementation direction are crystal clear.
 
-Only issues rated `4` or `5` should appear in the recommended shortlist. Lower-confidence candidates belong in `Needs more investigation` or should be omitted.
+Only issues rated `4` or `5` should be recommended. Lower-confidence candidates should be omitted.
 
 ## Recommended output format
 
-When triaging multiple issues, return a ranked shortlist with:
+Return a single best recommendation with:
 
 - **Full issue URL** (always include direct clickable link)
 - Issue reference and title
@@ -78,9 +80,7 @@ When triaging multiple issues, return a ranked shortlist with:
 - Ownership status: `unowned`, `possibly owned`, or `owned`
 - Blockers or missing information
 
-If an issue is owned, put it under `Do not pick now` with the ownership signal.
-
-If an issue is promising but below `4`, put it under `Needs more investigation`.
+If no suitable issue can be recommended, respond with a brief explanation that no high-confidence actionable issue was found.
 
 ## Extra checks
 
