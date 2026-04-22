@@ -1,11 +1,11 @@
 ---
 name: gh-context
-description: Analyze GitHub issues and PRs, pick the best actionable work, and return only high-confidence triage recommendations.
+description: Analyze GitHub issues, pick the best actionable work, and return only high-confidence triage recommendations.
 ---
 
 # gh-context
 
-Use this skill to triage GitHub issue or pull request context and produce a short ranked list of the best work to pick next.
+Use this skill to triage GitHub issue context and produce a short ranked list of the best work to pick next.
 
 This skill is not a general summary tool. It should only recommend issues that are actionable, unowned, and supported by a clear fix direction.
 
@@ -20,14 +20,14 @@ This skill is not a general summary tool. It should only recommend issues that a
 
 - `gh` must be installed and authenticated.
 - Install the skill first with `npx skills add hdcodedev/gh-context`
-- For natural-language requests, the repo can be inferred from the current git `origin` remote when no explicit issue/PR target is given.
+- For natural-language requests, the repo can be inferred from the current git `origin` remote when no explicit issue target is given.
 
 ## Use the tool
 
-1. If the user provides a direct issue or PR reference, use that explicit target.
+1. If the user provides a direct issue reference, use that explicit target.
 2. If the user asks for an actionable issue without a GitHub reference, infer the repo from the current git `origin` remote and select the top open issue candidate.
 3. Use the slash command: `/gh-context <input>` (or just `/gh-context` to automatically pick the best issue)
-4. In triage mode, do more than restate the issue: explain the failure, the likely subsystem, and a likely fix direction.
+4. Always do more than restate the issue: explain the failure, the likely subsystem, and a likely fix direction.
 5. Do not recommend work that appears owned, blocked, or too uncertain.
 
 ## Triage criteria
