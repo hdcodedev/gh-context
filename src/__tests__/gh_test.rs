@@ -1,4 +1,4 @@
-use crate::gh::{parse_repo, parse_repo_view_json, parse_target, TargetType};
+use crate::gh::{parse_git_remote_url, parse_repo, parse_repo_view_json, parse_target, TargetType};
 
 #[test]
 fn test_parse_full_url_issue() {
@@ -112,6 +112,27 @@ fn test_parse_repo_rejects_issue_number() {
     let input = "https://github.com/rust-lang/rust/issues/123";
     let err = parse_repo(input).unwrap_err();
     assert!(err.to_string().contains("issue number"));
+}
+
+#[test]
+fn test_parse_git_remote_url_https() {
+    let input = "https://github.com/rust-lang/rust.git";
+    let repo = parse_git_remote_url(input).unwrap();
+    assert_eq!(repo, "rust-lang/rust");
+}
+
+#[test]
+fn test_parse_git_remote_url_ssh() {
+    let input = "git@github.com:rust-lang/rust.git";
+    let repo = parse_git_remote_url(input).unwrap();
+    assert_eq!(repo, "rust-lang/rust");
+}
+
+#[test]
+fn test_parse_git_remote_url_simple() {
+    let input = "rust-lang/rust";
+    let repo = parse_git_remote_url(input).unwrap();
+    assert_eq!(repo, "rust-lang/rust");
 }
 
 #[test]

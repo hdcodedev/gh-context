@@ -45,7 +45,7 @@ pub(crate) fn parse_repo_view_json(json: &str) -> Result<Option<String>> {
     }
 }
 
-fn resolve_effective_repo(repo: &str) -> Result<String> {
+pub fn resolve_effective_repo(repo: &str) -> Result<String> {
     let output = Command::new("gh")
         .arg("repo")
         .arg("view")
@@ -184,6 +184,54 @@ pub fn parse_repo(input: &str) -> Result<(String, String)> {
     }
 
     Ok((owner, repo))
+}
+
+pub fn detect_repo_from_git() -> Result<String> {
+    let output = Command::new("git")
+        .arg("remote")
+        .arg("get-url")
+        .arg("origin")
+        .output()
+        .context("Failed to execute 'git remote get-url origin' for current repo detection")?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow!("'git remote get-url' failed: {}", stderr));
+    }
+
+    let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    parse_git_remote_url(&url)
+}
+
+pub fn parse_git_remote_url(url: &str) -> Result<String> {
+    let url = url.trim().trim_end_matches(".git");
+
+    if let Some(stripped) = url.strip_prefix("git@github.com:") {
+        return parse_owner_repo(stripped);
+    }
+
+    if let Some(stripped) = url.strip_prefix("https://github.com/") {
+        return parse_owner_repo(stripped);
+    }
+
+    if let Some(stripped) = url.strip_prefix("http://github.com/") {
+        return parse_owner_repo(stripped);
+    }
+
+    if let Some(idx) = url.find("github.com/") {
+        return parse_owner_repo(&url[idx + "github.com/".len()..]);
+    }
+
+    parse_owner_repo(url)
+}
+
+fn parse_owner_repo(path: &str) -> Result<String> {
+    let trimmed = path.trim_matches('/');
+    let parts: Vec<&str> = trimmed.split('/').collect();
+    if parts.len() != 2 {
+        return Err(anyhow!("Unsupported git remote URL format: {}", path));
+    }
+    Ok(format!("{}/{}", parts[0], parts[1]))
 }
 
 pub fn fetch_context(target: &Target) -> Result<Context> {

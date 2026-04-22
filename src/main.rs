@@ -80,6 +80,11 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
+    if cli.smart {
+        handle_smart_mode(&cli)?;
+        return Ok(());
+    }
+
     if cli.bulk {
         validate_bulk_args(&cli)?;
 
@@ -150,6 +155,41 @@ fn main() -> Result<()> {
         if !status.success() {
             eprintln!("Warning: pbcopy exited with non-zero status");
         }
+    }
+
+    Ok(())
+}
+
+fn handle_smart_mode(cli: &Cli) -> Result<()> {
+    let repo_arg = match gh::parse_repo(&cli.input) {
+        Ok((owner, repo)) => format!("{}/{}", owner, repo),
+        Err(_) => gh::detect_repo_from_git()?,
+    };
+
+    let repo_arg = gh::resolve_effective_repo(&repo_arg)?;
+    let issue_numbers = gh::list_issue_numbers(&repo_arg, cli.state.as_str(), cli.per_page, cli.pages)?;
+
+    if issue_numbers.is_empty() {
+        println!("No issues found.");
+        return Ok(());
+    }
+
+    let parts: Vec<&str> = repo_arg.split('/').collect();
+    let target = gh::Target {
+        owner: parts[0].to_string(),
+        repo: parts[1].to_string(),
+        number: issue_numbers[0],
+        kind: gh::TargetType::Issue,
+    };
+
+    let context = gh::fetch_context(&target)?;
+    let formatted_output = format_output(&context, &cli.format)?;
+
+    if let Some(path) = &cli.out {
+        std::fs::write(path, &formatted_output)
+            .with_context(|| format!("Failed to write output to file: {:?}", path))?;
+    } else {
+        println!("{}", formatted_output);
     }
 
     Ok(())

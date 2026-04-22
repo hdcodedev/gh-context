@@ -11,6 +11,7 @@ fn make_cli() -> Cli {
         format: OutputFormat::Md,
         out: None,
         clip: false,
+        smart: false,
         issue: false,
         pr: false,
         bulk: true,

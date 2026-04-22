@@ -43,6 +43,10 @@ pub struct Cli {
     #[arg(long)]
     pub clip: bool,
 
+    /// Use smart agent mode for natural-language request input
+    #[arg(long)]
+    pub smart: bool,
+
     /// Treat input as issue (disambiguate shorthand)
     #[arg(long)]
     pub issue: bool,

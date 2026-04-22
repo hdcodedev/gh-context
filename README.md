@@ -129,6 +129,11 @@ gh-context owner/repo --from 244 --to 276 --out ./repo-prs
 ```
 If any PR in the range fails to fetch, the command continues and prints a failure summary.
 
+Use smart agent mode to let the tool infer the current repo and handle natural-language requests:
+```bash
+gh-context --smart "find me one actionable issue"
+```
+
 Bulk fetch open issues for a repo (one file per issue, first page by default, requires `--out`):
 ```bash
 gh-context https://github.com/openai/codex/issues --bulk --out ./codex-issues
@@ -167,6 +172,7 @@ cargo run -- https://github.com/hdcodedev/resume256/issues/48
 - `--issue`: Treat input as issue (disambiguate shorthand)
 - `--pr`: Treat input as PR (disambiguate shorthand)
 - `--bulk`: Fetch multiple issues for a repo (list mode)
+- `--smart`: Treat the input as a natural-language agent request and infer the repo from the current git remotes when needed
 - `--state <open|closed|all>`: Issue state filter for bulk mode (default: open)
 - `--per-page <n>`: Items per page for bulk mode (default: 30)
 - `--pages <n>`: Number of pages to fetch in bulk mode (default: 1)
