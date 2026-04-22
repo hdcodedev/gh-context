@@ -1,6 +1,7 @@
 name: Release
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -21,6 +22,11 @@ jobs:
       - name: Check if version changed
         id: version-check
         run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           git fetch origin "${{ github.event.before }}" --depth=1 2>/dev/null || true
           if git diff "${{ github.event.before }}" "${{ github.sha }}" -- Cargo.toml | grep -qE '^[+-]version\s*='; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -36,4 +42,4 @@ jobs:
         if: steps.version-check.outputs.changed == 'true'
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish
+        run: cargo publish --locked
