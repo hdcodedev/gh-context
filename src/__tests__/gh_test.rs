@@ -1,4 +1,4 @@
-use crate::gh::{parse_repo, parse_target, TargetType};
+use crate::gh::{parse_repo, parse_repo_view_json, parse_target, TargetType};
 
 #[test]
 fn test_parse_full_url_issue() {
@@ -112,4 +112,24 @@ fn test_parse_repo_rejects_issue_number() {
     let input = "https://github.com/rust-lang/rust/issues/123";
     let err = parse_repo(input).unwrap_err();
     assert!(err.to_string().contains("issue number"));
+}
+
+#[test]
+fn test_parse_repo_view_json_non_fork() {
+    let json = r#"{
+        "isFork": false,
+        "parent": null
+    }"#;
+    let parent = parse_repo_view_json(json).unwrap();
+    assert!(parent.is_none());
+}
+
+#[test]
+fn test_parse_repo_view_json_fork() {
+    let json = r#"{
+        "isFork": true,
+        "parent": { "nameWithOwner": "rust-lang/rust" }
+    }"#;
+    let parent = parse_repo_view_json(json).unwrap();
+    assert_eq!(parent.unwrap(), "rust-lang/rust");
 }

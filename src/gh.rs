@@ -21,6 +21,58 @@ struct IssueListItem {
     pub number: u64,
 }
 
+#[derive(Debug, serde::Deserialize)]
+struct RepoViewParent {
+    #[serde(rename = "nameWithOwner")]
+    pub name_with_owner: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct RepoView {
+    #[serde(rename = "isFork")]
+    pub is_fork: bool,
+    pub parent: Option<RepoViewParent>,
+}
+
+pub(crate) fn parse_repo_view_json(json: &str) -> Result<Option<String>> {
+    let repo_view: RepoView = serde_json::from_str(json)
+        .context("Failed to parse JSON output from 'gh repo view'")?;
+
+    if repo_view.is_fork {
+        Ok(repo_view.parent.map(|parent| parent.name_with_owner))
+    } else {
+        Ok(None)
+    }
+}
+
+fn resolve_effective_repo(repo: &str) -> Result<String> {
+    let output = Command::new("gh")
+        .arg("repo")
+        .arg("view")
+        .arg("--repo")
+        .arg(repo)
+        .arg("--json")
+        .arg("isFork,parent{nameWithOwner}")
+        .output()
+        .context("Failed to execute 'gh repo view' for repository metadata")?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow!("'gh repo view' failed: {}", stderr));
+    }
+
+    let repo_view: RepoView = serde_json::from_slice(&output.stdout)
+        .context("Failed to parse JSON output from 'gh repo view'")?;
+
+    if repo_view.is_fork {
+        if let Some(parent) = repo_view.parent {
+            return Ok(parent.name_with_owner);
+        }
+    }
+
+    Ok(repo.to_string())
+}
+
 pub fn parse_target(input: &str, force_issue: bool, force_pr: bool) -> Result<Target> {
     if force_issue && force_pr {
         return Err(anyhow!("Cannot specify both --issue and --pr"));
@@ -212,11 +264,12 @@ pub fn list_issue_numbers(
         ));
     }
 
+    let effective_repo = resolve_effective_repo(repo)?;
     let output = Command::new("gh")
         .arg("issue")
         .arg("list")
         .arg("--repo")
-        .arg(repo)
+        .arg(&effective_repo)
         .arg("--state")
         .arg(state)
         .arg("--limit")
