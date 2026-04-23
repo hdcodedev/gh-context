@@ -3,6 +3,9 @@
 [![Crates.io](https://img.shields.io/crates/v/gh-context.svg)](https://crates.io/crates/gh-context)
 
 An agent skill to triage GitHub Issues, providing high-confidence recommendations for actionable work.
+<p align="center">
+  <img width="551" height="452" alt="Screenshot 2026-01-18 at 11 23 56" src="https://github.com/user-attachments/assets/b86419cb-49cd-4b3c-a1de-ba8a5a0341f5" />
+</p>
 
 ## Prerequisites
 
